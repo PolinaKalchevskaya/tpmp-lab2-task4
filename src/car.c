@@ -1,12 +1,48 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <errno.h>
 #include "../include/car.h"
 
 void create_test_file(const char* filename) {
+    // Извлекаем путь к папке из имени файла
+    char dir_path[256];
+    strcpy(dir_path, filename);
+    char* last_slash = strrchr(dir_path, '/');
+    
+    if (last_slash != NULL) {
+        *last_slash = '\0';  // Отделяем путь к папке
+        
+        // Проверяем, существует ли папка
+        struct stat st = {0};
+        if (stat(dir_path, &st) == -1) {
+            // Папка не существует - создаём
+            printf("Directory '%s' does not exist. Creating...\n", dir_path);
+            
+            #ifdef _WIN32
+                char cmd[300];
+                sprintf(cmd, "mkdir %s", dir_path);
+            #else
+                char cmd[300];
+                sprintf(cmd, "mkdir -p %s", dir_path);
+            #endif
+            
+            int result = system(cmd);
+            if (result == 0) {
+                printf("✓ Created directory: %s\n", dir_path);
+            } else {
+                printf("✗ Failed to create directory %s (error code: %d)\n", 
+                       dir_path, result);
+            }
+        }
+    }
+    
+    // Теперь создаём сам файл
     FILE* file = fopen(filename, "w");
     if (file == NULL) {
-        printf("Error: Cannot create test file\n");
+        printf("Error: Cannot create test file %s\n", filename);
+        printf("Reason: %s\n", strerror(errno));
         return;
     }
 
@@ -28,6 +64,7 @@ Car* read_cars_from_file(const char* filename, int* count) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         printf("Error: Cannot open file %s\n", filename);
+        printf("Reason: %s\n", strerror(errno));
         return NULL;
     }
 
@@ -66,9 +103,30 @@ Car* read_cars_from_file(const char* filename, int* count) {
 }
 
 void write_cars_to_file(const char* filename, Car* cars, int count) {
+    // Тоже создаём папку для выходного файла
+    char dir_path[256];
+    strcpy(dir_path, filename);
+    char* last_slash = strrchr(dir_path, '/');
+    
+    if (last_slash != NULL) {
+        *last_slash = '\0';
+        struct stat st = {0};
+        if (stat(dir_path, &st) == -1) {
+            #ifdef _WIN32
+                char cmd[300];
+                sprintf(cmd, "mkdir %s", dir_path);
+            #else
+                char cmd[300];
+                sprintf(cmd, "mkdir -p %s", dir_path);
+            #endif
+            system(cmd);
+        }
+    }
+    
     FILE* file = fopen(filename, "w");
     if (file == NULL) {
         printf("Error: Cannot create output file %s\n", filename);
+        printf("Reason: %s\n", strerror(errno));
         return;
     }
 

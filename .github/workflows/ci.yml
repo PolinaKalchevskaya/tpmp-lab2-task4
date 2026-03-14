@@ -1,0 +1,40 @@
+name: C Build and Test
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get install -y gcc make
+
+    - name: Create data directory and check permissions
+      run: |
+        mkdir -p data
+        echo "Current directory: $(pwd)"
+        echo "Contents after mkdir:"
+        ls -la
+        echo "Data directory permissions:"
+        ls -la data/
+        echo "Trying to create a test file in data/:"
+        touch data/test.txt && echo "✓ Can create files in data/" || echo "✗ Cannot create files in data/"
+        rm -f data/test.txt
+
+    - name: Build with Make
+      run: make
+
+    - name: Run program
+      run: |
+        echo "Before running program:"
+        pwd
+        ls -la data/
+        make run
